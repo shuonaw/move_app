@@ -110,7 +110,10 @@
     <div class="small" style="text-transform:uppercase;letter-spacing:.08em;color:#9A753B">Gentle reminders</div>
     <h2 style="margin-top:7px">Let Move check in with you</h2>
     <p id="notificationStatus">Get up to two gentle prompts a day, only if you haven't logged recently.</p>
-    <button id="enableNotifications" class="chip" type="button" style="margin-top:14px;background:var(--sage-light);border-color:#B8C9B9">Enable reminders</button>
+    <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:14px">
+      <button id="enableNotifications" class="chip" type="button" style="background:var(--sage-light);border-color:#B8C9B9">Enable reminders</button>
+      <button id="testNotification" class="chip" type="button">Send test notification</button>
+    </div>
   </div>
 
   <div class="stats">
@@ -596,6 +599,35 @@ async function reportActivity(){
     });
   }catch(err){ console.debug('Activity sync skipped',err); }
 }
+
+
+document.getElementById('testNotification')?.addEventListener('click',async()=>{
+  const status=document.getElementById('notificationStatus');
+  const button=document.getElementById('testNotification');
+
+  if(!('Notification' in window) || Notification.permission!=='granted'){
+    status.textContent='Notifications are not allowed yet. Enable reminders first, then try the test.';
+    return;
+  }
+
+  try{
+    button.disabled=true;
+    status.textContent='Sending a test notification…';
+    const res=await fetch('/api/test-push',{
+      method:'POST',
+      headers:{'content-type':'application/json'},
+      body:JSON.stringify({userId:getPushUserId()})
+    });
+    const data=await res.json();
+    if(!res.ok) throw new Error(data.error||'Test push failed');
+    status.textContent='Test sent. You should receive a Move notification shortly.';
+  }catch(err){
+    console.error(err);
+    status.textContent=`Test failed: ${err.message}`;
+  }finally{
+    button.disabled=false;
+  }
+});
 
 setupPush();
 
