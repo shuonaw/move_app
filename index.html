@@ -1,0 +1,604 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Move — Behavioral Awareness</title>
+<style>
+  :root {
+    --bg:#F7F3E9; --card:#FCFAF4; --ink:#304039; --muted:#74796E;
+    --line:#E3DED2; --toward:#6F9A7B; --away:#C58C7A; --unsure:#AAA083;
+    --sage:#78947E; --sage-light:#E4ECE1; --sun:#E7B86B;
+    --shadow:0 8px 24px rgba(61,72,64,.055);
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:
+    radial-gradient(circle at top right, rgba(231,184,107,.10), transparent 28%),
+    linear-gradient(180deg,#FAF6EC 0%,var(--bg) 44%,#F4F1E7 100%);
+    color:var(--ink);font-family:Inter,ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif}
+  button,input,textarea{font:inherit}
+  button{cursor:pointer}
+  .app{max-width:460px;margin:auto;min-height:100vh;padding:22px 18px 92px}
+  header{display:flex;justify-content:space-between;align-items:center;margin-bottom:28px}
+  .logo{font-size:25px;font-weight:720;letter-spacing:-.04em;color:var(--ink)}
+  .date{font-size:13px;color:var(--muted)}
+  .screen{display:none}.screen.active{display:block}
+  h1{font-size:31px;line-height:1.08;letter-spacing:-.04em;margin:4px 0 10px}
+  h2{font-size:20px;letter-spacing:-.025em;margin:0 0 12px}
+  p{color:var(--muted);line-height:1.5;margin:0}
+  .hero{padding:28px 2px 26px}
+  .hero:before{content:"";display:block;width:34px;height:5px;border-radius:999px;background:var(--sun);opacity:.8;margin-bottom:20px}
+  .primary{width:100%;border:0;background:var(--ink);color:#FFFDF8;border-radius:20px;padding:18px;font-weight:700;font-size:16px;margin-top:22px;box-shadow:var(--shadow)}
+  .primary:hover{filter:brightness(1.03)}
+  .card{background:rgba(252,250,244,.88);border:1px solid rgba(48,64,57,.07);border-radius:24px;padding:19px;box-shadow:var(--shadow);margin-bottom:14px;backdrop-filter:blur(8px)}
+  .stats{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+  .stat{padding:17px;border-radius:20px;background:rgba(228,236,225,.68);border:1px solid rgba(120,148,126,.10)}
+  .stat strong{font-size:28px;display:block;letter-spacing:-.04em}
+  .stat span{font-size:12px;color:var(--muted)}
+  .bar{height:9px;background:#EAE5DA;border-radius:99px;overflow:hidden;margin-top:15px;display:flex}
+  .bar .toward{background:var(--toward)}.bar .away{background:var(--away)}.bar .unsure{background:var(--unsure)}
+  .section-title{display:flex;justify-content:space-between;align-items:center;margin:26px 2px 11px}
+  .small{font-size:12px;color:var(--muted)}
+  .log-item{display:flex;gap:12px;align-items:flex-start;padding:13px 0;border-bottom:1px solid var(--line)}
+  .log-item:last-child{border-bottom:0}
+  .dot{width:9px;height:9px;border-radius:50%;margin-top:7px;flex:none}
+  .dot.toward{background:var(--toward)}.dot.away{background:var(--away)}.dot.unsure{background:var(--unsure)}
+  .log-main{flex:1}.log-title{font-size:14px;font-weight:650}.log-meta{font-size:12px;color:var(--muted);margin-top:3px}
+  label{display:block;font-size:13px;font-weight:650;margin:18px 0 8px}
+  textarea,input{width:100%;border:1px solid var(--line);border-radius:16px;background:rgba(252,250,244,.85);padding:13px;outline:none;color:var(--ink)}
+  textarea:focus,input:focus{border-color:#B8C9B9;box-shadow:0 0 0 3px rgba(120,148,126,.10)}
+  textarea{min-height:88px;resize:vertical}
+  .chips{display:flex;gap:8px;flex-wrap:wrap}
+  .chip{border:1px solid var(--line);background:rgba(252,250,244,.58);border-radius:999px;padding:9px 12px;font-size:13px;color:#4C5A52}
+  .chip.selected{background:var(--sage-light);color:var(--ink);border-color:#B8C9B9}
+  .direction{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px}
+  .dir{padding:14px 8px;border-radius:15px;border:1px solid var(--line);background:transparent;font-weight:700;font-size:13px}
+  .dir.toward.selected{background:#E4ECE1;border-color:#AFC2B2;color:#496E58}
+  .dir.away.selected{background:#F2E5E0;border-color:#D6AEA1;color:#946154}
+  .dir.unsure.selected{background:#F0ECDD;border-color:#CFC6A8;color:#756B50}
+  .nav{position:fixed;bottom:0;left:0;right:0;background:rgba(247,243,233,.92);backdrop-filter:blur(16px);border-top:1px solid rgba(227,222,210,.9)}
+  .nav-inner{max-width:460px;margin:auto;display:grid;grid-template-columns:repeat(4,1fr);padding:9px 12px 12px}
+  .nav button{border:0;background:transparent;color:var(--muted);padding:8px;font-size:12px}
+  .nav button.active{color:var(--ink);font-weight:750}
+  .nav button.active .nav-icon{color:#A8782F}
+  .nav-icon{display:block;font-size:19px;margin-bottom:2px}
+  .insight{border-left:4px solid var(--sun);padding-left:14px}
+  .insight.toward{border-color:var(--toward)}
+  .loop{display:grid;grid-template-columns:1fr auto 1fr auto 1fr;align-items:center;gap:6px;margin-top:16px}
+  .loop div{background:#F0EEE6;padding:12px 7px;border-radius:13px;text-align:center;font-size:11px;border:1px solid rgba(48,64,57,.05)}
+  .arrow{color:#aaa}
+  .empty{text-align:center;padding:28px 8px;color:var(--muted);font-size:14px}
+  .back{border:0;background:transparent;padding:0;color:var(--muted);font-size:13px;margin-bottom:18px}
+  .success{text-align:center;padding:42px 10px}.success .check{font-size:46px;margin-bottom:12px}
+  @media(min-width:700px){body{padding:20px}.app{background:var(--bg)}}
+</style>
+
+<link rel="manifest" href="/manifest.webmanifest">
+<meta name="theme-color" content="#F7F3E9">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="Move">
+<link rel="apple-touch-icon" href="/icon.svg">
+
+</head>
+<body>
+<div class="app">
+<header>
+  <div class="logo">move</div>
+  <div class="date" id="today"></div>
+</header>
+
+<section id="home" class="screen active">
+  <div class="hero">
+    <h1>Notice the move.</h1>
+    <p>You don't have to change anything yet. Just notice whether you're moving toward something or away from something.</p>
+    <button class="primary" onclick="show('log')">＋ Log a moment</button>
+  </div>
+
+  <div id="proactiveCheckin" class="card" style="display:none !important;border-left:4px solid var(--sun);">
+    <div class="small" style="text-transform:uppercase;letter-spacing:.08em;color:#9A753B">Quick check-in</div>
+    <h2 id="checkinTitle" style="margin-top:7px">Anything changed?</h2>
+    <p id="checkinCopy">It’s been a little while since your last moment. What are you noticing now?</p>
+    <div style="display:flex;gap:8px;margin-top:14px">
+      <button id="checkinLogBtn" class="chip" style="background:var(--sage-light);border-color:#B8C9B9">Log now</button>
+      <button id="checkinLaterBtn" class="chip">Remind me later</button>
+    </div>
+  </div>
+
+
+  <div class="card" id="notificationCard">
+    <div class="small" style="text-transform:uppercase;letter-spacing:.08em;color:#9A753B">Gentle reminders</div>
+    <h2 style="margin-top:7px">Let Move check in with you</h2>
+    <p id="notificationStatus">Get up to two gentle prompts a day, only if you haven't logged recently.</p>
+    <button id="enableNotifications" class="chip" type="button" style="margin-top:14px;background:var(--sage-light);border-color:#B8C9B9">Enable reminders</button>
+  </div>
+
+  <div class="stats">
+    <div class="stat"><strong id="towardCount">0</strong><span>Toward today</span></div>
+    <div class="stat"><strong id="awayCount">0</strong><span>Away today</span></div>
+  </div>
+  <div class="bar"><div class="toward" id="barToward"></div><div class="away" id="barAway"></div><div class="unsure" id="barUnsure"></div></div>
+
+  <div class="section-title"><h2>Today</h2><span class="small" id="totalLabel">0 moments</span></div>
+  <div class="card" id="todayLogs"></div>
+</section>
+
+<section id="log" class="screen">
+  <button class="back" onclick="show('home')">← Back</button>
+  <h1>What’s happening?</h1>
+  <p>Capture the moment without trying to explain it perfectly.</p>
+
+  <label>What are you doing?</label>
+  <textarea id="behavior" placeholder="e.g. Opening Instagram instead of starting the proposal"></textarea>
+
+  <label>What are you feeling?</label>
+  <div class="chips" id="feelings">
+    <button class="chip">✨ Energized</button><button class="chip">🌿 Rejuvenated</button>
+    <button class="chip">🔍 Curious</button><button class="chip">💡 Inspired</button>
+    <button class="chip">🧘 Grounded</button><button class="chip">❤️ Connected</button>
+    <button class="chip">😌 Content</button><button class="chip">😰 Anxious</button>
+    <button class="chip">😕 Uncertain</button><button class="chip">💤 Tired</button>
+  </div>
+  <button type="button" id="moreFeelings" class="chip" style="margin-top:10px" onclick="toggleMoreFeelings()">+ More feelings</button>
+  <div class="chips" id="moreFeelingsList" style="display:none;margin-top:10px">
+    <button class="chip">Engaged</button><button class="chip">Excited</button>
+    <button class="chip">Playful</button><button class="chip">Motivated</button>
+    <button class="chip">Hopeful</button><button class="chip">Alive</button>
+    <button class="chip">Peaceful</button><button class="chip">Present</button>
+    <button class="chip">Relaxed</button><button class="chip">Clear</button>
+    <button class="chip">Centered</button><button class="chip">Grateful</button>
+    <button class="chip">Loved</button><button class="chip">Supported</button>
+    <button class="chip">Open</button><button class="chip">Seen</button>
+    <button class="chip">Affectionate</button><button class="chip">Overwhelmed</button>
+    <button class="chip">Lonely</button><button class="chip">Frustrated</button>
+    <button class="chip">Sad</button><button class="chip">Angry</button>
+    <button class="chip">Restless</button><button class="chip">Discouraged</button>
+    <button class="chip">Self-conscious</button><button class="chip">Numb</button>
+    <button class="chip">Distracted</button><button class="chip">Indifferent</button>
+    <button class="chip">Conflicted</button><button class="chip">Stuck</button>
+    <button class="chip">Bored</button>
+  </div>
+
+  <div style="margin-top:12px">
+    <label for="customFeeling" style="margin:0 0 8px;font-size:13px;font-weight:650">Or write your own</label>
+    <div style="display:flex;gap:8px">
+      <input id="customFeeling" type="text" placeholder="e.g. Recharged, expansive, tender..." style="flex:1">
+      <button type="button" id="addCustomFeeling" class="chip" style="white-space:nowrap">Add</button>
+    </div>
+    <div class="chips" id="customFeelingsList" style="margin-top:10px"></div>
+  </div>
+
+  <label>What are you moving?</label>
+  <div class="direction">
+    <button class="dir away" onclick="selectDir('away')">← Away</button>
+    <button class="dir unsure" onclick="selectDir('unsure')">? Unsure</button>
+    <button class="dir toward" onclick="selectDir('toward')">Toward →</button>
+  </div>
+
+  <label>What are you hoping this gives you?</label>
+  <textarea id="payoff" placeholder="e.g. Relief, certainty, connection, stimulation..."></textarea>
+
+  <button class="primary" onclick="saveMoment()">Save moment</button>
+</section>
+
+<section id="reflection" class="screen">
+  <h1>Your patterns.</h1>
+  <p>The app gets more useful as you collect moments. For now, these are simple observations from your logs.</p>
+
+  <div class="section-title"><h2>Recent patterns</h2></div>
+  <div id="insights"></div>
+
+  <div class="section-title"><h2>Behavioral loops</h2></div>
+  <div class="card" id="loops"></div>
+</section>
+
+<section id="trends" class="screen">
+  <h1>What I’m noticing.</h1>
+  <p>Simple observations from the moments you’ve logged. No score, no judgment.</p>
+  <div style="margin-top:18px;padding:14px 16px;border-radius:18px;background:#F7E8C9;color:#7D642E;font-size:13px;line-height:1.45">
+    Awareness over performance. The goal is to notice what seems to be changing.
+  </div>
+
+  <div class="section-title"><h2>Direction over time</h2><span class="small">last 8 weeks</span></div>
+  <div class="card">
+    <div id="trendBars" style="display:grid;grid-template-columns:repeat(8,1fr);gap:7px;align-items:end;height:150px"></div>
+    <div id="trendLabels" style="display:grid;grid-template-columns:repeat(8,1fr);gap:7px;margin-top:8px"></div>
+  </div>
+
+  <div class="section-title"><h2>Patterns</h2></div>
+  <div id="trendInsights"></div>
+
+  <div class="section-title"><h2>Most common moves</h2></div>
+  <div class="card" id="moveSummary"></div>
+</section>
+
+<section id="saved" class="screen">
+  <h1>All moments.</h1>
+  <p>A raw record of what you noticed.</p>
+  <div class="section-title"><h2>History</h2><span class="small" id="historyCount"></span></div>
+  <div class="card" id="history"></div>
+</section>
+</div>
+
+<nav class="nav">
+  <div class="nav-inner">
+    <button class="active" data-screen="home" onclick="show('home')"><span class="nav-icon">⌂</span>Today</button>
+    <button data-screen="reflection" onclick="show('reflection')"><span class="nav-icon">◌</span>Patterns</button>
+    <button data-screen="trends" onclick="show('trends')"><span class="nav-icon">↗</span>Trends</button>
+    <button data-screen="saved" onclick="show('saved')"><span class="nav-icon">☰</span>History</button>
+  </div>
+</nav>
+
+<script>
+const KEY='move_moments_v1';
+const CHECKIN_KEY='move_checkin_snooze_until_v1';
+const CHECKIN_SHOWN_KEY='move_checkin_windows_shown_v1';
+const RECENT_LOG_SUPPRESS_MS=2*60*60*1000; // skip prompts after a recent spontaneous log
+const CHECKIN_SNOOZE_MS=60*60*1000; // "remind me later" = 1 hour
+const CHECKIN_WINDOWS=[
+  {id:'afternoon',start:12.5,end:15.5,label:'afternoon'}, // 12:30–3:30
+  {id:'evening',start:18.5,end:21.5,label:'evening'}     // 6:30–9:30
+];
+let moments=JSON.parse(localStorage.getItem(KEY)||'[]');
+let direction=null;
+
+document.getElementById('today').textContent=new Intl.DateTimeFormat(undefined,{month:'short',day:'numeric'}).format(new Date());
+
+function bindFeelingChips(){
+  document.querySelectorAll('#feelings .chip, #moreFeelingsList .chip, #customFeelingsList .chip').forEach(c=>{
+    c.onclick=()=>c.classList.toggle('selected');
+  });
+}
+bindFeelingChips();
+
+function addCustomFeeling(){
+  const input=document.getElementById('customFeeling');
+  const value=input.value.trim();
+  if(!value) return;
+  const chip=document.createElement('button');
+  chip.type='button';
+  chip.className='chip selected';
+  chip.textContent=value;
+  document.getElementById('customFeelingsList').appendChild(chip);
+  chip.onclick=()=>chip.classList.toggle('selected');
+  input.value='';
+}
+
+document.getElementById('addCustomFeeling').addEventListener('click',addCustomFeeling);
+document.getElementById('customFeeling').addEventListener('keydown',e=>{
+  if(e.key==='Enter'){
+    e.preventDefault();
+    addCustomFeeling();
+  }
+});
+
+function toggleMoreFeelings(){
+  const list=document.getElementById('moreFeelingsList');
+  const button=document.getElementById('moreFeelings');
+  const open=list.style.display!=='none';
+  list.style.display=open?'none':'flex';
+  button.textContent=open?'+ More feelings':'− Fewer feelings';
+}
+
+function selectDir(d){
+  direction=d;
+  document.querySelectorAll('.dir').forEach(x=>x.classList.remove('selected'));
+  document.querySelector('.dir.'+d).classList.add('selected');
+}
+
+function show(id){
+  document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+  document.querySelectorAll('.nav button').forEach(b=>b.classList.toggle('active',b.dataset.screen===id));
+  render();
+updateProactiveCheckin();
+  renderTrends();
+  window.scrollTo({top:0,behavior:'smooth'});
+}
+
+function saveMoment(){
+  const behavior=document.getElementById('behavior').value.trim();
+  const payoff=document.getElementById('payoff').value.trim();
+  const feelings=[...document.querySelectorAll('#feelings .chip.selected, #moreFeelingsList .chip.selected, #customFeelingsList .chip.selected')]
+    .map(x=>x.textContent.replace(/^[^A-Za-z]+/,'').trim());
+  if(!behavior || !direction){ alert('Add what you’re doing and choose a direction.'); return; }
+  moments.unshift({id:Date.now(),behavior,payoff,feelings,direction,at:new Date().toISOString()});
+  localStorage.setItem(KEY,JSON.stringify(moments));
+  reportActivity();
+  localStorage.removeItem(CHECKIN_KEY);
+  const activeWindow=activeCheckinWindow();
+  if(activeWindow) markWindowShown(activeWindow.id);
+  document.getElementById('behavior').value='';
+  document.getElementById('payoff').value='';
+  document.querySelectorAll('#feelings .chip, #moreFeelingsList .chip, #customFeelingsList .chip').forEach(x=>x.classList.remove('selected'));
+  document.getElementById('customFeelingsList').innerHTML='';
+  document.getElementById('customFeeling').value='';
+  const moreList=document.getElementById('moreFeelingsList');
+  const moreButton=document.getElementById('moreFeelings');
+  if(moreList) moreList.style.display='none';
+  if(moreButton) moreButton.textContent='+ More feelings';
+  document.querySelectorAll('.dir').forEach(x=>x.classList.remove('selected'));
+  direction=null;
+  show('home');
+}
+
+
+function checkinDateKey(){
+  const d=new Date();
+  return `${d.getFullYear()}-${d.getMonth()+1}-${d.getDate()}`;
+}
+
+function getShownWindows(){
+  try{
+    const data=JSON.parse(localStorage.getItem(CHECKIN_SHOWN_KEY)||'{}');
+    return data.date===checkinDateKey() ? data.shown||[] : [];
+  }catch(e){ return []; }
+}
+
+function markWindowShown(id){
+  const shown=getShownWindows();
+  if(!shown.includes(id)) shown.push(id);
+  localStorage.setItem(CHECKIN_SHOWN_KEY,JSON.stringify({date:checkinDateKey(),shown}));
+}
+
+function activeCheckinWindow(){
+  const d=new Date();
+  const hour=d.getHours()+d.getMinutes()/60;
+  return CHECKIN_WINDOWS.find(w=>hour>=w.start && hour<=w.end) || null;
+}
+
+function updateProactiveCheckin(){
+  const card=document.getElementById('proactiveCheckin');
+  if(!card) return;
+
+  const now=Date.now();
+  const snoozeUntil=Number(localStorage.getItem(CHECKIN_KEY)||0);
+  if(now < snoozeUntil){ card.style.display='none'; return; }
+
+  const windowNow=activeCheckinWindow();
+  if(!windowNow){ card.style.display='none'; return; }
+
+  const shown=getShownWindows();
+  if(shown.includes(windowNow.id)){ card.style.display='none'; return; }
+
+  const latest=moments.length ? Math.max(...moments.map(m=>new Date(m.at).getTime())) : 0;
+  if(latest && now-latest < RECENT_LOG_SUPPRESS_MS){
+    card.style.display='none';
+    return;
+  }
+
+  card.style.display='block';
+  document.getElementById('checkinTitle').textContent='What are you noticing right now?';
+  document.getElementById('checkinCopy').textContent=
+    `A quick ${windowNow.label} check-in. What’s happening, and which direction are you moving?`;
+}
+
+function snoozeCheckin(){
+  localStorage.setItem(CHECKIN_KEY, String(Date.now()+CHECKIN_SNOOZE_MS));
+  updateProactiveCheckin();
+}
+
+document.getElementById('checkinLogBtn').addEventListener('click',()=>{
+  const w=activeCheckinWindow();
+  if(w) markWindowShown(w.id);
+  show('log');
+});
+document.getElementById('checkinLaterBtn').addEventListener('click',snoozeCheckin);
+
+// Re-check while open; prompts can appear only in the two daily check-in windows.
+setInterval(updateProactiveCheckin, 30000);
+
+function sameDay(a,b){return new Date(a).toDateString()===new Date(b).toDateString()}
+function time(a){return new Intl.DateTimeFormat(undefined,{hour:'numeric',minute:'2-digit'}).format(new Date(a))}
+function esc(s){return s.replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[m]))}
+
+function item(m){
+  return `<div class="log-item"><span class="dot ${m.direction}"></span><div class="log-main">
+    <div class="log-title">${esc(m.behavior)}</div>
+    <div class="log-meta">${m.feelings.length?esc(m.feelings.join(' · '))+' · ':''}${time(m.at)} · ${m.direction}</div>
+  </div></div>`;
+}
+
+function render(){
+  const today=moments.filter(m=>sameDay(m.at,new Date()));
+  const toward=today.filter(m=>m.direction==='toward').length;
+  const away=today.filter(m=>m.direction==='away').length;
+  const unsure=today.filter(m=>m.direction==='unsure').length;
+  const total=toward+away+unsure;
+  document.getElementById('towardCount').textContent=toward;
+  document.getElementById('awayCount').textContent=away;
+  document.getElementById('totalLabel').textContent=total+' moment'+(total===1?'':'s');
+  document.getElementById('barToward').style.width=(total?toward/total*100:0)+'%';
+  document.getElementById('barAway').style.width=(total?away/total*100:0)+'%';
+  document.getElementById('barUnsure').style.width=(total?unsure/total*100:0)+'%';
+  document.getElementById('todayLogs').innerHTML=today.length?today.slice(0,8).map(item).join(''):'<div class="empty">Nothing logged yet.<br>Try catching one moment.</div>';
+
+  const byFeeling={};
+  moments.forEach(m=>m.feelings.forEach(f=>{byFeeling[f]??={toward:0,away:0,unsure:0};byFeeling[f][m.direction]++}));
+  const feelingEntries=Object.entries(byFeeling).sort((a,b)=>(b[1].away+b[1].toward+b[1].unsure)-(a[1].away+a[1].toward+a[1].unsure));
+  let insights='';
+  if(feelingEntries.length){
+    const awayTrigger=feelingEntries.find(([_,v])=>v.away>v.toward);
+    const towardTrigger=feelingEntries.find(([_,v])=>v.toward>=v.away);
+    if(awayTrigger) insights+=`<div class="card insight"><h2>You often move away when ${esc(awayTrigger[0].toLowerCase())}.</h2><p>${awayTrigger[1].away} of your logged moments in this state were away moves.</p></div>`;
+    if(towardTrigger) insights+=`<div class="card insight toward"><h2>You move toward when ${esc(towardTrigger[0].toLowerCase())}.</h2><p>Your logs show ${towardTrigger[1].toward} toward move${towardTrigger[1].toward===1?'':'s'} in this state.</p></div>`;
+  }
+  if(!insights) insights='<div class="card empty">Log a few moments and your first patterns will appear here.</div>';
+  document.getElementById('insights').innerHTML=insights;
+
+  const loops=moments.filter(m=>m.payoff).slice(0,5);
+  document.getElementById('loops').innerHTML=loops.length?loops.map(m=>`<div style="padding:13px 0;border-bottom:1px solid var(--line)">
+    <div class="small">${esc(m.feelings[0]||'Trigger')}</div>
+    <div class="loop"><div>${esc(m.feelings[0]||'Feeling')}</div><span class="arrow">→</span><div>${esc(m.behavior).slice(0,28)}</div><span class="arrow">→</span><div>${esc(m.payoff).slice(0,28)}</div></div>
+  </div>`).join(''):'<div class="empty">Your first behavioral loop will appear once you record a payoff.</div>';
+
+  document.getElementById('historyCount').textContent=moments.length+' total';
+  document.getElementById('history').innerHTML=moments.length?moments.map(item).join(''):'<div class="empty">No moments yet.</div>';
+  updateProactiveCheckin();
+}
+
+// Longitudinal observations
+function renderTrends(){
+  const now=new Date(), weeks=[];
+  for(let i=7;i>=0;i--){
+    const end=new Date(now); end.setDate(now.getDate()-i*7);
+    const begin=new Date(end); begin.setDate(end.getDate()-6);
+    weeks.push({label:i===0?'Now':i+'w',items:moments.filter(m=>{const d=new Date(m.at);return d>=begin&&d<=end;})});
+  }
+  const max=Math.max(1,...weeks.map(w=>w.items.length));
+  document.getElementById('trendBars').innerHTML=weeks.map(w=>{
+    const t=w.items.filter(m=>m.direction==='toward').length;
+    const a=w.items.filter(m=>m.direction==='away').length;
+    const u=w.items.filter(m=>m.direction==='unsure').length;
+    const h=Math.max(4,w.items.length/max*118);
+    const tw=w.items.length?t/w.items.length*100:0, aw=w.items.length?a/w.items.length*100:0;
+    return `<div style="height:${h}px;border-radius:8px;overflow:hidden;background:#EAE5DA;display:flex;flex-direction:column-reverse" title="${w.items.length} moments">
+      <div style="height:${tw}%;background:var(--toward)"></div>
+      <div style="height:${aw}%;background:var(--away)"></div>
+      <div style="height:${100-tw-aw}%;background:var(--unsure)"></div>
+    </div>`;
+  }).join('');
+  document.getElementById('trendLabels').innerHTML=weeks.map(w=>`<div style="text-align:center;font-size:10px;color:var(--muted)">${w.label}</div>`).join('');
+
+  const counts={toward:0,away:0,unsure:0};
+  moments.forEach(m=>counts[m.direction]++);
+  const observations=[];
+  if(moments.length){
+    const dominant=Object.entries(counts).sort((a,b)=>b[1]-a[1])[0];
+    observations.push(`<div class="card insight ${dominant[0]==='toward'?'toward':''}">
+      <h2>Most of your logged moves are ${dominant[0]}.</h2>
+      <p>${counts[dominant[0]]} of ${moments.length} moments (${Math.round(counts[dominant[0]]/moments.length*100)}%) were marked ${dominant[0]}.</p>
+    </div>`);
+  }
+
+  const recent=weeks.slice(4).flatMap(w=>w.items), older=weeks.slice(0,4).flatMap(w=>w.items);
+  if(recent.length>=2 && older.length>=2){
+    const ra=recent.filter(m=>m.direction==='away').length/recent.length;
+    const oa=older.filter(m=>m.direction==='away').length/older.length;
+    if(Math.abs(ra-oa)>=.15){
+      const dir=ra>oa?'more':'less';
+      observations.push(`<div class="card insight ${dir==='less'?'toward':''}">
+        <h2>You’ve been moving away ${dir} recently.</h2>
+        <p>Away moves are ${Math.round(ra*100)}% of your recent logs versus ${Math.round(oa*100)}% earlier in the period.</p>
+      </div>`);
+    }
+  }
+
+  const byFeeling={};
+  moments.forEach(m=>m.feelings.forEach(f=>{byFeeling[f]??={toward:0,away:0,unsure:0};byFeeling[f][m.direction]++}));
+  const feelingEntries=Object.entries(byFeeling).sort((a,b)=>(b[1].toward+b[1].away+b[1].unsure)-(a[1].toward+a[1].away+a[1].unsure));
+  if(feelingEntries.length){
+    const [f,v]=feelingEntries[0];
+    observations.push(`<div class="card insight"><h2>${esc(f)} is a recurring context.</h2><p>You’ve logged ${v.toward+v.away+v.unsure} moments while feeling this way.</p></div>`);
+  }
+  document.getElementById('trendInsights').innerHTML=observations.length?observations.join(''):'<div class="card empty">As you log more moments, I’ll summarize what appears to be changing over time.</div>';
+
+  const behaviors={};
+  moments.forEach(m=>{
+    const key=m.behavior.trim().toLowerCase();
+    if(!key)return;
+    behaviors[key]??={label:m.behavior,count:0,toward:0,away:0};
+    behaviors[key].count++;
+    behaviors[key][m.direction]=(behaviors[key][m.direction]||0)+1;
+  });
+  const top=Object.values(behaviors).sort((a,b)=>b.count-a.count).slice(0,5);
+  document.getElementById('moveSummary').innerHTML=top.length?top.map(x=>`<div style="padding:11px 0;border-bottom:1px solid var(--line)">
+    <strong>${esc(x.label)}</strong><div class="small">${x.count}× · ${x.away||0} away · ${x.toward||0} toward</div>
+  </div>`).join(''):'<div class="empty">Repeated behaviors will show up here.</div>';
+}
+renderTrends();
+render();
+
+const PUSH_USER_KEY='move_push_user_id_v1';
+
+function getPushUserId(){
+  let id=localStorage.getItem(PUSH_USER_KEY);
+  if(!id){
+    id=(crypto.randomUUID ? crypto.randomUUID() : 'u-'+Date.now()+'-'+Math.random().toString(16).slice(2));
+    localStorage.setItem(PUSH_USER_KEY,id);
+  }
+  return id;
+}
+
+function urlBase64ToUint8Array(base64String){
+  const padding='='.repeat((4-base64String.length%4)%4);
+  const base64=(base64String+padding).replace(/-/g,'+').replace(/_/g,'/');
+  const raw=atob(base64);
+  return Uint8Array.from([...raw].map(c=>c.charCodeAt(0)));
+}
+
+async function setupPush(){
+  const status=document.getElementById('notificationStatus');
+  const button=document.getElementById('enableNotifications');
+  if(!('serviceWorker' in navigator) || !('PushManager' in window) || !('Notification' in window)){
+    status.textContent='This browser does not support web push. On iPhone, add Move to your Home Screen first.';
+    button.style.display='none';
+    return;
+  }
+
+  try{
+    const registration=await navigator.serviceWorker.register('/sw.js');
+    const existing=await registration.pushManager.getSubscription();
+    if(existing && Notification.permission==='granted'){
+      status.textContent='Reminders are on: up to one afternoon and one evening check-in.';
+      button.textContent='Reminders enabled';
+      button.disabled=true;
+      return;
+    }
+
+    button.addEventListener('click',async()=>{
+      try{
+        button.disabled=true;
+        status.textContent='Requesting notification permission…';
+        const permission=await Notification.requestPermission();
+        if(permission!=='granted'){
+          status.textContent='Notifications are off. You can enable them later in your device settings.';
+          button.disabled=false;
+          return;
+        }
+
+        const cfg=await fetch('/api/push-config').then(r=>r.json());
+        const subscription=await registration.pushManager.subscribe({
+          userVisibleOnly:true,
+          applicationServerKey:urlBase64ToUint8Array(cfg.publicKey)
+        });
+
+        await fetch('/api/subscribe',{
+          method:'POST',
+          headers:{'content-type':'application/json'},
+          body:JSON.stringify({
+            userId:getPushUserId(),
+            subscription,
+            timeZone:Intl.DateTimeFormat().resolvedOptions().timeZone
+          })
+        });
+
+        status.textContent='Reminders are on: up to one afternoon and one evening check-in.';
+        button.textContent='Reminders enabled';
+      }catch(err){
+        console.error(err);
+        status.textContent='Could not enable reminders yet. Check the Netlify push setup and try again.';
+        button.disabled=false;
+      }
+    });
+  }catch(err){
+    console.error(err);
+    status.textContent='Push setup is not available in this preview. Deploy the full folder to Netlify first.';
+  }
+}
+
+async function reportActivity(){
+  try{
+    await fetch('/api/activity',{
+      method:'POST',
+      headers:{'content-type':'application/json'},
+      body:JSON.stringify({userId:getPushUserId(),lastLogAt:new Date().toISOString()})
+    });
+  }catch(err){ console.debug('Activity sync skipped',err); }
+}
+
+setupPush();
+
+</script>
+</body>
+</html>
