@@ -1,0 +1,10 @@
+{
+  "name": "move-awareness",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "dependencies": {
+    "@netlify/blobs": "^10.0.0",
+    "web-push": "^3.6.7"
+  }
+}
