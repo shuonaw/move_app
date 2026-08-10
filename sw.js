@@ -1,5 +1,5 @@
-const CACHE='move-v1';
-const ASSETS=['/','/index.html','/manifest.webmanifest','/icon.svg'];
+const CACHE='move-v2';
+const ASSETS=['/','/index.html','/manifest.webmanifest','/icon-192.png','/icon-512.png'];
 
 self.addEventListener('install',event=>{
   event.waitUntil(caches.open(CACHE).then(cache=>cache.addAll(ASSETS)));
@@ -22,8 +22,8 @@ self.addEventListener('push',event=>{
   try{ data={...data,...event.data.json()}; }catch(e){}
   event.waitUntil(self.registration.showNotification(data.title,{
     body:data.body,
-    icon:'/icon.svg',
-    badge:'/icon.svg',
+    icon:'/icon-192.png',
+    badge:'/icon-192.png',
     tag:data.tag||'move-checkin',
     data:{url:data.url||'/?checkin=1'}
   }));

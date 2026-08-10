@@ -29,3 +29,13 @@ This package turns the Move prototype into a Home Screen PWA with Web Push.
 ## Important
 
 On iPhone/iPad, Web Push is for web apps added to the Home Screen. Notification permission must be requested in response to a user action, which is why Move has an explicit **Enable reminders** button.
+
+
+## Android install verification
+
+After deploying:
+1. Open the site in Chrome on Android.
+2. Use **Install** (not just Add to Home screen).
+3. Confirm Move appears in the app drawer.
+4. Long-press Move → App info to verify Android recognizes it as an installed app.
+5. Then enable reminders and test push notifications.
