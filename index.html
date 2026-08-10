@@ -543,6 +543,21 @@ async function setupPush(){
     const registration=await navigator.serviceWorker.register('/sw.js');
     const existing=await registration.pushManager.getSubscription();
     if(existing && Notification.permission==='granted'){
+      // A browser subscription may survive even if a prior backend sync failed.
+      // Always re-register it with Netlify before declaring reminders enabled.
+      const sync=await fetch('/api/subscribe',{
+        method:'POST',
+        headers:{'content-type':'application/json'},
+        body:JSON.stringify({
+          userId:getPushUserId(),
+          subscription:existing,
+          timeZone:Intl.DateTimeFormat().resolvedOptions().timeZone
+        })
+      });
+      if(!sync.ok){
+        const detail=await sync.json().catch(()=>({}));
+        throw new Error(detail.error||'Could not sync push subscription');
+      }
       status.textContent='Reminders are on: up to one afternoon and one evening check-in.';
       button.textContent='Reminders enabled';
       button.disabled=true;
@@ -566,7 +581,7 @@ async function setupPush(){
           applicationServerKey:urlBase64ToUint8Array(cfg.publicKey)
         });
 
-        await fetch('/api/subscribe',{
+        const sync=await fetch('/api/subscribe',{
           method:'POST',
           headers:{'content-type':'application/json'},
           body:JSON.stringify({
@@ -575,6 +590,10 @@ async function setupPush(){
             timeZone:Intl.DateTimeFormat().resolvedOptions().timeZone
           })
         });
+        if(!sync.ok){
+          const detail=await sync.json().catch(()=>({}));
+          throw new Error(detail.error||'Could not save push subscription');
+        }
 
         status.textContent='Reminders are on: up to one afternoon and one evening check-in.';
         button.textContent='Reminders enabled';
