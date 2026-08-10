@@ -118,23 +118,7 @@
   </div>
 
 
-  <div class="card" id="diagnosticsCard">
-    <div class="small" style="text-transform:uppercase;letter-spacing:.08em;color:#9A753B">Notification diagnostics</div>
-    <h2 style="margin-top:7px">Check notification setup</h2>
-    <div id="diagResults" style="font-size:14px;line-height:1.8;margin-top:10px">
-      <div>Permission: <strong id="diagPermission">Checking…</strong></div>
-      <div>Service worker: <strong id="diagSW">Checking…</strong></div>
-      <div>Push subscription: <strong id="diagPush">Checking…</strong></div>
-      <div>Backend subscription: <strong id="diagBackend">Checking…</strong></div>
-    </div>
-    <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:14px">
-      <button id="refreshDiagnostics" class="chip" type="button">Refresh diagnostics</button>
-      <button id="localNotification" class="chip" type="button">Show local notification</button>
-    </div>
-    <p id="diagMessage" class="small" style="margin-top:10px"></p>
-  </div>
-
-  <div class="stats">
+    <div class="stats">
     <div class="stat"><strong id="towardCount">0</strong><span>Toward today</span></div>
     <div class="stat"><strong id="awayCount">0</strong><span>Away today</span></div>
   </div>
@@ -666,73 +650,6 @@ document.getElementById('testNotification')?.addEventListener('click',async()=>{
   }
 });
 
-
-async function refreshNotificationDiagnostics(){
-  const permission=document.getElementById('diagPermission');
-  const swEl=document.getElementById('diagSW');
-  const pushEl=document.getElementById('diagPush');
-  const backendEl=document.getElementById('diagBackend');
-  const msg=document.getElementById('diagMessage');
-
-  permission.textContent=('Notification' in window) ? Notification.permission : 'Unsupported';
-
-  if(!('serviceWorker' in navigator)){
-    swEl.textContent='Unsupported';
-    pushEl.textContent='Unavailable';
-    backendEl.textContent='Unknown';
-    return;
-  }
-
-  try{
-    const reg=await navigator.serviceWorker.ready;
-    swEl.textContent=navigator.serviceWorker.controller ? 'Active + controlling page' : 'Active (reload once)';
-    const sub=await reg.pushManager.getSubscription();
-    pushEl.textContent=sub ? 'Present' : 'Missing';
-
-    try{
-      const res=await fetch('/api/subscription-status?userId='+encodeURIComponent(getPushUserId()));
-      const data=await res.json();
-      backendEl.textContent=data.subscribed ? 'Present' : 'Missing';
-    }catch(e){
-      backendEl.textContent='Could not check';
-    }
-    msg.textContent='';
-  }catch(e){
-    swEl.textContent='Not ready';
-    pushEl.textContent='Unknown';
-    backendEl.textContent='Unknown';
-    msg.textContent='Service worker error: '+e.message;
-  }
-}
-
-document.getElementById('refreshDiagnostics')?.addEventListener('click',refreshNotificationDiagnostics);
-
-document.getElementById('localNotification')?.addEventListener('click',async()=>{
-  const msg=document.getElementById('diagMessage');
-  try{
-    if(!('Notification' in window)){
-      msg.textContent='Notifications are not supported in this browser.';
-      return;
-    }
-    if(Notification.permission!=='granted'){
-      msg.textContent='Notification permission is not granted yet.';
-      return;
-    }
-    const reg=await navigator.serviceWorker.ready;
-    await reg.showNotification('Move',{
-      body:'Local test successful 🌿 This notification did not use Netlify.',
-      icon:'/icon-192.png',
-      badge:'/icon-192.png',
-      tag:'move-local-test',
-      data:{url:'/?checkin=1'}
-    });
-    msg.textContent='Local notification requested. Swipe down to check your notification shade.';
-  }catch(e){
-    msg.textContent='Local notification failed: '+e.message;
-  }
-});
-
-setTimeout(refreshNotificationDiagnostics,1000);
 
 setupPush();
 
